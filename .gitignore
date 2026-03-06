@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Docker volumes (local data)
+infrastructure/docker/volumes/
+
+# Test coverage
+coverage/
+.pytest_cache/
+htmlcov/
+
+# Prisma
+apps/api/prisma/*.db
+
+# Elasticsearch data
+infrastructure/monitoring/grafana/data/

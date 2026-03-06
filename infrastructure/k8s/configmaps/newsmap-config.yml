@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: newsmap-config
+  namespace: newsmap
+data:
+  ollama-url: "http://ollama-host:11434"
+  es-url: "http://newsmap-elasticsearch:9200"
+  redis-host: "newsmap-redis"
+  node-env: "production"

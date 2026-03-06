@@ -1,0 +1,44 @@
+# PostgreSQL StatefulSet (для сохранения данных между перезапусками)
+# В production используй managed DB или операторы (CloudNativePG)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: newsmap-postgres
+  namespace: newsmap
+spec:
+  serviceName: newsmap-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: newsmap-postgres
+  template:
+    metadata:
+      labels:
+        app: newsmap-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgis/postgis:16-3.4
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: newsmap
+            - name: POSTGRES_USER
+              value: newsmap
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: newsmap-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

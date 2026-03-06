@@ -1,0 +1,28 @@
+# Ingress — единая точка входа, маршрутизация по path
+# K3s включает Traefik ingress controller по умолчанию
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: newsmap-ingress
+  namespace: newsmap
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: newsmap.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: newsmap-api
+                port:
+                  number: 3001
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: newsmap-web
+                port:
+                  number: 80

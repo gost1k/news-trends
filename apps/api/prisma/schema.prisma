@@ -1,0 +1,128 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis, vector]
+}
+
+// ── Источник новостей ──────────────────────────────────
+model Source {
+  id         String    @id @default(uuid())
+  name       String    @unique
+  url        String
+  language   String    @default("ru") // ru | en
+  parserType String    @map("parser_type") // rss | scraper
+  isActive   Boolean   @default(true) @map("is_active")
+  articles   Article[]
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("sources")
+}
+
+// ── Статья ─────────────────────────────────────────────
+model Article {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  summary     String?
+  sourceUrl   String   @unique @map("source_url")
+  publishedAt DateTime @map("published_at")
+  parsedAt    DateTime @default(now()) @map("parsed_at")
+  // embedding хранится как vector(1536) через raw SQL / pgvector
+  aiMetadata  Json?    @map("ai_metadata") // NER, sentiment, category
+
+  source   Source @relation(fields: [sourceId], references: [id])
+  sourceId String @map("source_id")
+
+  locations ArticleLocation[]
+  tags      ArticleTag[]
+  trends    TrendArticle[]
+
+  @@index([publishedAt])
+  @@index([sourceId])
+  @@map("articles")
+}
+
+// ── Локация (PostGIS) ──────────────────────────────────
+model Location {
+  id          String @id @default(uuid())
+  name        String
+  type        String // country | region | city | district
+  countryCode String @map("country_code")
+  // geometry coords хранится через PostGIS raw SQL: POINT / POLYGON
+  lat         Float?
+  lng         Float?
+
+  articles ArticleLocation[]
+
+  @@unique([name, type, countryCode])
+  @@map("locations")
+}
+
+// ── Связи ──────────────────────────────────────────────
+model ArticleLocation {
+  article    Article  @relation(fields: [articleId], references: [id])
+  articleId  String   @map("article_id")
+  location   Location @relation(fields: [locationId], references: [id])
+  locationId String   @map("location_id")
+
+  @@id([articleId, locationId])
+  @@map("article_locations")
+}
+
+model Tag {
+  id       String       @id @default(uuid())
+  name     String       @unique
+  category String?
+  articles ArticleTag[]
+
+  @@map("tags")
+}
+
+model ArticleTag {
+  article   Article @relation(fields: [articleId], references: [id])
+  articleId String  @map("article_id")
+  tag       Tag     @relation(fields: [tagId], references: [id])
+  tagId     String  @map("tag_id")
+
+  @@id([articleId, tagId])
+  @@map("article_tags")
+}
+
+// ── Тренды ─────────────────────────────────────────────
+model Trend {
+  id           String         @id @default(uuid())
+  title        String
+  summary      String?
+  detectedAt   DateTime       @default(now()) @map("detected_at")
+  articleCount Int            @default(0) @map("article_count")
+  articles     TrendArticle[]
+
+  @@map("trends")
+}
+
+model TrendArticle {
+  trend     Trend   @relation(fields: [trendId], references: [id])
+  trendId   String  @map("trend_id")
+  article   Article @relation(fields: [articleId], references: [id])
+  articleId String  @map("article_id")
+
+  @@id([trendId, articleId])
+  @@map("trend_articles")
+}
+
+// ── Пользователи (JWT auth) ───────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String?
+  role         String   @default("user") // user | admin
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
