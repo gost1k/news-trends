@@ -4,11 +4,42 @@
 
 ```
 Proxmox Host
+├── vm-gateway (ID: 99)      — Nginx reverse proxy, SSL, HTTP/2
 ├── vm-dev (ID: 100)         — Разработка
 ├── vm-infra (ID: 101)       — Docker-сервисы
 ├── vm-k3s (ID: 102)         — Kubernetes (Фаза 5)
 └── [отдельная машина]       — Ollama (GPU)
 ```
+
+## vm-gateway (Ubuntu 24.04 LTS / LXC)
+
+**Ресурсы:** 1 CPU, 512MB-1GB RAM, 10GB SSD. Можно LXC-контейнер вместо VM.
+
+**Назначение:** единая точка входа для всего HTTP(S)-трафика в сети. Замена HAProxy на OpenWRT.
+
+- SSL termination (wildcard Let's Encrypt через DNS-01 challenge)
+- HTTP/2
+- Роутинг по субдоменам на внутренние сервисы
+- Gzip-сжатие
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-dns-cloudflare
+```
+
+Подробная настройка: [infrastructure/nginx/gateway/README.md](../nginx/gateway/README.md)
+
+**Субдомены:**
+| Субдомен | Назначение | Upstream |
+|----------|-----------|----------|
+| `newsmap.example.com` | React + API | vm-dev:5173 / :3001 |
+| `kibana.example.com` | Kibana UI | vm-infra:5601 |
+| `grafana.example.com` | Grafana дашборды | vm-infra:3000 |
+| `es.example.com` | Elasticsearch (read-only) | vm-infra:9200 |
+| `prometheus.example.com` | Prometheus | vm-infra:9090 |
+| `ollama.example.com` | Ollama API | ollama:11434 |
+
+---
 
 ## vm-dev (Ubuntu 24.04 LTS)
 
@@ -115,14 +146,34 @@ curl http://localhost:11434/api/tags
 Общаются по внутренним IP (например, 192.168.1.x).
 
 ```
-vm-dev (192.168.1.100) ──→ vm-infra (192.168.1.101):5432,6379,9200
-vm-dev (192.168.1.100) ──→ ollama-host (192.168.1.200):11434
-vm-dev (192.168.1.100) ──→ vm-k3s (192.168.1.102):6443
+VPN / Интернет
+       │
+       ▼
+vm-gateway (.99) ─── SSL/HTTP2 ─── роутинг по субдоменам
+       │
+       ├──→ vm-dev (.100):5173,3001     — приложение
+       ├──→ vm-infra (.101):5432,6379,9200,5601,3000  — сервисы
+       ├──→ vm-k3s (.102):6443          — Kubernetes
+       └──→ ollama (.200):11434         — AI
 ```
 
-Настрой `/etc/hosts` на vm-dev для удобства:
+Прямые подключения (без gateway, по внутренней сети):
 ```
+vm-dev (.100) ──→ vm-infra (.101):5432,6379,9200  — приложения → БД
+vm-dev (.100) ──→ ollama (.200):11434              — AI запросы
+vm-dev (.100) ──→ vm-k3s (.102):6443               — kubectl
+```
+
+Настрой `/etc/hosts` на vm-dev:
+```
+192.168.1.99   vm-gateway
 192.168.1.101  vm-infra
 192.168.1.102  vm-k3s
 192.168.1.200  ollama-host
+```
+
+DNS (один из вариантов — dnsmasq на OpenWRT):
+```
+# /etc/dnsmasq.conf — направить все *.example.com на gateway
+address=/example.com/192.168.1.99
 ```

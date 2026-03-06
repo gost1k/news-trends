@@ -84,13 +84,16 @@ pip install -r requirements.txt
 
 ```
 Proxmox Host
+├── vm-gateway (1GB RAM)  — Nginx: SSL, HTTP/2, роутинг по субдоменам
 ├── vm-dev (4GB RAM)      — код, Node.js, Python, VS Code SSH
 ├── vm-infra (8-16GB RAM) — Docker Compose: PG, Redis, ES, Kibana, мониторинг
 ├── vm-k3s (8GB RAM)      — Kubernetes (Фаза 5)
 └── Отдельная машина      — Ollama (GPU, порт 11434)
 ```
 
-Подробности: [infrastructure/proxmox/README.md](infrastructure/proxmox/README.md)
+Gateway роутит по субдоменам: `newsmap.→` vm-dev, `kibana.→` vm-infra, `grafana.→` vm-infra, и т.д.
+
+Подробности: [infrastructure/proxmox/README.md](infrastructure/proxmox/README.md) | [Nginx Gateway](infrastructure/nginx/gateway/README.md)
 
 ## API Endpoints
 
