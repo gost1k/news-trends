@@ -2,6 +2,12 @@
 
 Сервис парсинга новостей из RSS-фидов и веб-скраперов.
 
+## Требования
+
+- Python 3.12+
+- Redis (для очереди)
+- сетевой доступ к источникам RSS/Web
+
 ## Структура src/
 
 | Папка | Назначение |
@@ -40,6 +46,17 @@ pip install -r requirements.txt
 python -m src.main
 ```
 
+## Smoke test
+
+```bash
+# 1) Запусти сервис
+python -m src.main
+
+# 2) Убедись, что в Redis появляется очередь с сообщениями
+# (примерная проверка через redis-cli, если доступен локально)
+redis-cli LLEN news:raw
+```
+
 ## Ключевые библиотеки
 
 - **feedparser** — парсинг RSS/Atom фидов
@@ -57,3 +74,9 @@ python -m src.main
 3. Добавь очистку через `processors/cleaner.py`
 4. Подключи Redis и публикуй через `queue/publisher.py`
 5. Настрой APScheduler для периодического парсинга
+
+## Troubleshooting
+
+- пустая очередь в Redis: проверь `REDIS_HOST/PORT` и успешность парсинга источников
+- источник перестал парситься: проверь изменения HTML/RSS и обнови scraper
+- частые ошибки геокодинга: включи retry/backoff и ограничь rate для Nominatim

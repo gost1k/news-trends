@@ -177,3 +177,17 @@ DNS (один из вариантов — dnsmasq на OpenWRT):
 # /etc/dnsmasq.conf — направить все *.example.com на gateway
 address=/example.com/192.168.1.99
 ```
+
+## Post-deploy checklist
+
+- `vm-gateway`, `vm-dev`, `vm-infra` доступны по SSH и пингуются между собой
+- на `vm-infra` сервисы Docker в статусе `Up` (`docker compose ps`)
+- с `vm-dev` проходят health-check запросы к API/Elasticsearch/Ollama
+- DNS внутри сети резолвит `*.example.com` в `vm-gateway`
+- через gateway открываются `newsmap`, `kibana`, `grafana` без `502/504`
+
+## Troubleshooting
+
+- нет связи между VM: проверь bridge `vmbr0`, firewall Proxmox и правила маршрутизации
+- контейнеры на `vm-infra` не стартуют: проверь свободные ресурсы (RAM/диск) и логи Docker
+- `kubectl` с `vm-dev` не подключается к `vm-k3s`: проверь kubeconfig и `server` IP в конфиге

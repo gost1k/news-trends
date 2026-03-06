@@ -2,6 +2,19 @@
 
 SPA-приложение на React + TypeScript + Vite.
 
+## Требования
+
+- Node.js 22+
+- API доступен по ожидаемому base URL (обычно `http://localhost:3001`)
+
+## Быстрый старт
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
 ## Структура src/
 
 | Папка | Назначение |
@@ -45,3 +58,18 @@ npm run build    # Production-сборка
 npm run preview  # Предпросмотр сборки
 npm run lint     # Проверка ESLint
 ```
+
+## Smoke test
+
+```bash
+# Проверка, что Vite-сервер поднят
+curl -I http://localhost:5173
+```
+
+Открой UI и проверь базовый путь пользователя: карта загружается, список новостей отображается, фильтры изменяют выдачу.
+
+## Troubleshooting
+
+- пустой UI или ошибки запросов: проверь, что `apps/api` запущен и base URL настроен корректно
+- порт `5173` занят: перезапусти с другим портом (`npm run dev -- --port 5174`)
+- ошибки типов/сборки: обнови зависимости (`npm install`) и проверь Node.js 22+

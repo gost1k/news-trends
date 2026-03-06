@@ -181,3 +181,17 @@ curl -vI https://newsmap.example.com 2>&1 | grep -E 'SSL|subject|expire'
 # Проверить HTTP/2
 curl -vI --http2 https://newsmap.example.com 2>&1 | grep 'HTTP/2'
 ```
+
+## Post-deploy checklist
+
+- `sudo nginx -t` проходит без ошибок
+- `sudo systemctl status nginx` показывает `active (running)`
+- DNS-резолвинг `*.example.com` указывает на IP gateway
+- `curl -I https://newsmap.example.com` возвращает `200/301/302`, но не `502/504`
+- wildcard сертификат валиден и `certbot renew --dry-run` проходит
+
+## Troubleshooting
+
+- `502 Bad Gateway`: проверь доступность upstream-сервиса и IP/порт в `upstream`
+- TLS ошибки: проверь пути к сертификатам и права на файлы в `/etc/letsencrypt`
+- домен не открывается: проверь DNS-кеш клиента и фактический A-record

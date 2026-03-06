@@ -2,6 +2,12 @@
 
 Сервис обработки новостей через Ollama (LLM) с сохранением в PostgreSQL и Elasticsearch.
 
+## Требования
+
+- Python 3.12+
+- доступный Ollama API (`/api/tags`, `/api/generate`, `/api/embeddings`)
+- PostgreSQL, Elasticsearch и Redis
+
 ## Структура src/
 
 | Папка | Назначение |
@@ -70,3 +76,21 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python -m src.main
 ```
+
+## Smoke test
+
+```bash
+# Проверка Ollama
+curl http://ollama-host:11434/api/tags
+
+# Запуск процессора
+python -m src.main
+```
+
+Ожидаемое поведение: процессор читает сообщения из Redis, пишет результаты в PostgreSQL и индексирует в Elasticsearch.
+
+## Troubleshooting
+
+- таймауты к Ollama: проверь `OLLAMA_URL`, сеть и что нужные модели скачаны
+- документы не индексируются в Elasticsearch: проверь `ELASTICSEARCH_URL` и права доступа
+- данные не попадают в PostgreSQL: проверь схему/миграции и параметры подключения

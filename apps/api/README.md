@@ -2,6 +2,21 @@
 
 REST API сервер на Express + TypeScript с Prisma ORM.
 
+## Требования
+
+- Node.js 22+ (см. `engines` в корневом `package.json`)
+- PostgreSQL/Redis/Elasticsearch доступны (обычно через `npm run docker:up` из корня)
+- заполненный `.env` с `DATABASE_URL`
+
+## Быстрый старт
+
+```bash
+cd apps/api
+npm install
+npm run db:push
+npm run dev
+```
+
 ## Структура src/
 
 | Папка | Назначение |
@@ -40,6 +55,8 @@ POST   /api/v1/auth/login        — вход (JWT)
 GET    /health                   — health check
 ```
 
+Source of truth по контрактам и payload: [docs/03-api-design.md](../../docs/03-api-design.md)
+
 ## С чего начать (Фаза 1)
 
 1. Настрой `.env` с `DATABASE_URL` и запусти `npm run db:push`
@@ -68,3 +85,19 @@ npm run db:migrate   # Создать миграцию Prisma
 npm run db:push      # Синхронизировать схему с БД
 npm run db:studio    # GUI для просмотра данных
 ```
+
+## Smoke test
+
+```bash
+# health endpoint
+curl http://localhost:3001/health
+
+# пример чтения новостей
+curl "http://localhost:3001/api/v1/news?page=1&limit=5"
+```
+
+## Troubleshooting
+
+- ошибка Prisma connection: проверь `DATABASE_URL` и доступность PostgreSQL
+- `ECONNREFUSED` к Redis/Elasticsearch: подними инфраструктуру `npm run docker:up` из корня
+- TypeScript ошибки при запуске: обнови зависимости (`npm install`) и проверь Node.js версии 22+
