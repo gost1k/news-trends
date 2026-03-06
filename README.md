@@ -2,6 +2,30 @@
 
 Fullstack-проект для изучения современных веб-технологий: парсинг новостей, AI-обработка, геовизуализация на карте.
 
+## Поток данных
+
+```
+[RSS/Web источники]
+       │
+       ▼
+[Python Parser] ──→ Redis Queue ──→ [Python AI Processor] ──→ Ollama (GPU)
+                                            │
+                                    ┌───────┴───────┐
+                                    ▼               ▼
+                              PostgreSQL      Elasticsearch
+                           (PostGIS+pgvector)  (полнотекст)
+                                    │               │
+                                    └───────┬───────┘
+                                            ▼
+                                    [Node.js Express API]
+                                      │           │
+                                  REST/WS      Ollama
+                                      │        (AI чат)
+                                      ▼
+                                [React Frontend]
+                              Карта · Тренды · AI-чат
+```
+
 ## Стек
 
 | Слой | Технологии |
@@ -56,12 +80,88 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Инфраструктура (Proxmox)
+
+```
+Proxmox Host
+├── vm-dev (4GB RAM)      — код, Node.js, Python, VS Code SSH
+├── vm-infra (8-16GB RAM) — Docker Compose: PG, Redis, ES, Kibana, мониторинг
+├── vm-k3s (8GB RAM)      — Kubernetes (Фаза 5)
+└── Отдельная машина      — Ollama (GPU, порт 11434)
+```
+
+Подробности: [infrastructure/proxmox/README.md](infrastructure/proxmox/README.md)
+
+## API Endpoints
+
+```
+GET    /api/v1/news              — список новостей (фильтры, пагинация)
+GET    /api/v1/news/:id          — детали статьи
+GET    /api/v1/news/search       — полнотекстовый поиск (Elasticsearch)
+GET    /api/v1/news/:id/similar  — семантически похожие (pgvector)
+GET    /api/v1/map/articles      — статьи с гео-координатами (PostGIS)
+GET    /api/v1/map/clusters      — кластеры для карты
+GET    /api/v1/trends            — список трендов
+POST   /api/v1/chat              — AI-вопрос (Ollama/LightRAG)
+POST   /api/v1/auth/register     — регистрация
+POST   /api/v1/auth/login        — JWT-токен
+GET    /health                   — health check
+```
+
+Подробности: [docs/03-api-design.md](docs/03-api-design.md)
+
+## База данных
+
+Основные таблицы: `articles`, `locations` (PostGIS), `sources`, `tags`, `trends`, `users`.
+
+- **PostGIS** — гео-запросы: "статьи в радиусе 50 км от точки"
+- **pgvector** — семантический поиск по эмбеддингам
+- **Elasticsearch** — полнотекстовый поиск, агрегации для трендов
+
+Подробности: [docs/04-database-schema.md](docs/04-database-schema.md)
+
+## Переменные окружения
+
+```bash
+cp infrastructure/docker/.env.example infrastructure/docker/.env
+```
+
+| Переменная | По умолчанию | Описание |
+|-----------|-------------|----------|
+| `DATABASE_URL` | `postgresql://newsmap:newsmap@localhost:5432/newsmap` | PostgreSQL |
+| `REDIS_HOST` | `localhost` | Redis |
+| `ELASTICSEARCH_URL` | `http://localhost:9200` | Elasticsearch |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama (отдельная машина) |
+| `JWT_SECRET` | — | Секрет для JWT-токенов |
+| `PORT` | `3001` | Порт Node.js API |
+
+## Паттерны
+
+- **Controller → Service → Repository** — разделение ответственности в API
+- **Queue/Worker** — асинхронная обработка через Redis (парсер → AI)
+- **CQRS** — запись в PostgreSQL, чтение из Elasticsearch
+- **Middleware** — auth, validation, error handling, rate limiting
+- **12-Factor App** — конфигурация через env, логи в stdout
+
+Подробности: [docs/06-patterns.md](docs/06-patterns.md)
+
+## Документация
+
+| Файл | Содержание |
+|------|-----------|
+| [docs/01-architecture.md](docs/01-architecture.md) | Архитектура, компоненты, хранилища |
+| [docs/02-learning-path.md](docs/02-learning-path.md) | План обучения по фазам с чеклистами |
+| [docs/03-api-design.md](docs/03-api-design.md) | REST API контракты |
+| [docs/04-database-schema.md](docs/04-database-schema.md) | ER-диаграмма, SQL-примеры |
+| [docs/05-infrastructure.md](docs/05-infrastructure.md) | Docker, K3s, мониторинг |
+| [docs/06-patterns.md](docs/06-patterns.md) | Архитектурные паттерны |
+
 ## Фазы обучения
 
-Подробный план в [docs/02-learning-path.md](docs/02-learning-path.md).
+Подробный план: [docs/02-learning-path.md](docs/02-learning-path.md)
 
-1. **Фундамент** — React, TypeScript, Express, Docker
-2. **Данные** — PostgreSQL, PostGIS, Redis, Python парсер
-3. **AI + Поиск** — Ollama, pgvector, Elasticsearch, LightRAG
-4. **Продвинутый фронтенд** — Карта, WebSocket, графики
-5. **Инфраструктура** — K3s, Nginx, мониторинг, CI/CD
+1. **Фундамент** (2-3 нед.) — React, TypeScript, Express, Docker
+2. **Данные** (2-3 нед.) — PostgreSQL, PostGIS, Redis, Python парсер
+3. **AI + Поиск** (2-3 нед.) — Ollama, pgvector, Elasticsearch, LightRAG
+4. **Продвинутый фронтенд** (1-2 нед.) — Карта, WebSocket, графики
+5. **Инфраструктура** (2-3 нед.) — K3s, Nginx, мониторинг, CI/CD
