@@ -19,16 +19,107 @@ npm run dev
 
 ## Структура src/
 
-| Папка | Назначение |
-|-------|-----------|
-| `routes/` | Определение REST-эндпоинтов: `newsRouter`, `trendsRouter`, `chatRouter`, `mapRouter`, `authRouter` |
-| `controllers/` | Обработка HTTP-запросов, вызов сервисов, формирование ответов. Один файл = один ресурс |
-| `services/` | Бизнес-логика: `NewsService`, `TrendService`, `ChatService`. Не знают про HTTP |
-| `models/` | Prisma-хелперы и типы, дополнительные запросы (raw SQL для PostGIS/pgvector) |
-| `middleware/` | Express middleware: auth (JWT), errorHandler, rateLimiter, validation (zod) |
-| `workers/` | BullMQ worker'ы: переиндексация ES, агрегация трендов, очистка старых данных |
-| `ws/` | Socket.io обработчики: real-time новости на карте, уведомления о трендах |
-| `config/` | Конфигурация: env переменные, подключения к БД, Redis, Elasticsearch |
+```
+src/
+├── index.ts              # Точка входа: Express app, подключение роутеров, middleware
+├── config/               # Конфигурация приложения
+├── routes/               # REST-маршруты (тонкий слой)
+├── controllers/          # Обработчики HTTP-запросов
+├── services/             # Бизнес-логика
+├── models/               # Prisma-хелперы, raw SQL, типы
+├── middleware/           # Express middleware
+├── workers/              # Фоновые задачи (BullMQ)
+└── ws/                   # WebSocket (Socket.io)
+```
+
+### config/
+
+Конфигурация из переменных окружения. Не содержит логики.
+
+| Файл | Назначение |
+|------|------------|
+| `env.ts` | Парсинг `.env`: `port`, `database.url`, `redis`, `elasticsearch`, `ollama`, `jwt`. Единая точка доступа к конфигу |
+| `db.ts` | (опционально) Инициализация Prisma Client, экспорт `prisma` |
+| `redis.ts` | (опционально) Подключение к Redis для BullMQ и rate limiting |
+
+### routes/
+
+Только определение маршрутов и привязка к контроллерам. Без логики.
+
+| Файл | Маршруты | Контроллер |
+|------|----------|------------|
+| `newsRouter.ts` | `GET /`, `GET /:id`, `GET /search`, `GET /:id/similar` | newsController |
+| `trendsRouter.ts` | `GET /`, `GET /:id` | trendsController |
+| `chatRouter.ts` | `POST /` | chatController |
+| `mapRouter.ts` | `GET /articles`, `GET /clusters` | mapController |
+| `authRouter.ts` | `POST /register`, `POST /login` | authController |
+| `index.ts` | Собирает все роутеры под префиксом `/api/v1` | — |
+
+### controllers/
+
+Принимают HTTP-запрос, валидируют вход (zod), вызывают сервис, формируют JSON-ответ. Не содержат бизнес-логики и прямых запросов к БД.
+
+| Файл | Методы | Ответственность |
+|------|--------|-----------------|
+| `newsController.ts` | `list`, `getById`, `search`, `getSimilar` | Парсинг query/params, вызов NewsService, сериализация в DTO |
+| `trendsController.ts` | `list`, `getById` | Пагинация, вызов TrendService |
+| `chatController.ts` | `sendMessage` | Валидация body, вызов ChatService, форматирование ответа |
+| `mapController.ts` | `getArticles`, `getClusters` | Валидация bbox/zoom, вызов MapService |
+| `authController.ts` | `register`, `login` | Валидация body, вызов AuthService, возврат JWT в ответе |
+
+### services/
+
+Бизнес-логика. Работают с Prisma, Elasticsearch, Ollama. Не знают про HTTP, Request, Response.
+
+| Файл | Методы | Ответственность |
+|------|--------|-----------------|
+| `newsService.ts` | `findMany`, `findById`, `search`, `findSimilar` | Фильтры, пагинация, вызов ES для поиска, pgvector для similar |
+| `trendService.ts` | `findMany`, `findById` | Агрегация трендов с articles |
+| `chatService.ts` | `ask` | Интеграция с Ollama/LightRAG, RAG по статьям |
+| `mapService.ts` | `getArticlesInBbox`, `getClusters` | PostGIS-запросы, кластеризация по zoom |
+| `authService.ts` | `register`, `login` | Создание пользователя, проверка пароля, генерация JWT |
+
+### models/
+
+Расширения над Prisma: raw SQL для PostGIS/pgvector, переиспользуемые запросы, типы.
+
+| Файл | Назначение |
+|------|------------|
+| `prisma.ts` | Реэкспорт `PrismaClient` и типов (`Article`, `Trend` и т.д.) |
+| `articleQueries.ts` | Raw SQL: поиск по эмбеддингу (pgvector), PostGIS-фильтры |
+| `locationQueries.ts` | PostGIS: `ST_Within`, `ST_DWithin`, кластеризация точек |
+| `types.ts` | DTO-типы для API: `ArticleListItem`, `MapArticle`, `MapCluster` |
+
+### middleware/
+
+Express middleware: порядок важен (auth — до защищённых роутов, errorHandler — последний).
+
+| Файл | Назначение |
+|------|------------|
+| `errorHandler.ts` | Ловит все ошибки, возвращает `{ error: string }` с нужным statusCode |
+| `auth.ts` | Проверка JWT в `Authorization`, запись `req.user` |
+| `rateLimiter.ts` | express-rate-limit для /auth и /chat |
+| `validate.ts` | Обёртка над zod: валидирует body/query, передаёт в next или 400 |
+
+### workers/
+
+BullMQ worker'ы. Запускаются отдельным процессом (`npm run workers`). Обрабатывают очереди из Redis.
+
+| Файл | Очередь | Задача |
+|------|---------|--------|
+| `esIndexWorker.ts` | `news:index` | Индексация новых статей в Elasticsearch |
+| `trendsWorker.ts` | `trends:aggregate` | Агрегация трендов по кластерам статей |
+| `cleanupWorker.ts` | `cleanup:daily` | Удаление старых данных, архивирование |
+
+### ws/
+
+Socket.io: real-time события. Подключение к тому же HTTP-серверу, что и Express.
+
+| Файл | Назначение |
+|------|------------|
+| `index.ts` | Инициализация Socket.io, подключение обработчиков |
+| `handlers/newsHandler.ts` | События: подписка на bbox, рассылка новых статей в область |
+| `handlers/trendsHandler.ts` | События: уведомления о новых трендах |
 
 ## Prisma
 
@@ -59,22 +150,29 @@ Source of truth по контрактам и payload: [docs/03-api-design.md](..
 
 ## С чего начать (Фаза 1)
 
-1. Настрой `.env` с `DATABASE_URL` и запусти `npm run db:push`
-2. Создай `routes/newsRouter.ts` с простым GET-эндпоинтом
-3. Создай `controllers/newsController.ts` — обработка запроса
-4. Создай `services/newsService.ts` — запрос к Prisma
-5. Подключи роутер в `index.ts`
+1. Подними инфраструктуру: из корня монорепо выполни `npm run docker:up`. PostgreSQL (с PostGIS и pgvector), Redis и Elasticsearch запустятся в Docker — отдельная установка PostgreSQL не нужна.
+2. Настрой `.env` с `DATABASE_URL` (по умолчанию `postgresql://newsmap:newsmap@localhost:5432/newsmap`) и запусти `npm run db:push`
+3. Создай `services/newsService.ts` — метод `findMany()` с Prisma
+4. Создай `controllers/newsController.ts` — вызов сервиса, `res.json()`
+5. Создай `routes/newsRouter.ts` — `router.get('/', newsController.list)`
+6. В `index.ts`: `app.use('/api/v1/news', newsRouter)`
 
-## Паттерн: Controller → Service → Repository
+## Паттерн: Router → Controller → Service → Model
 
 ```
-Request → Router → Controller → Service → Prisma/DB → Response
-                        ↓
-                   Validation (zod)
+Request → Router → Controller → Service → Model/Prisma → Response
+              |           |           |
+              |           |           └── Бизнес-логика, вызовы Prisma/ES/Ollama
+              |           └── Валидация (zod), вызов сервиса, формирование ответа
+              └── Сопоставление URL → контроллер
 ```
 
-Controller не содержит бизнес-логики. Service не знает про HTTP.
-Это разделение упрощает тестирование и поддержку.
+- **Router** — только маршрутизация, без логики
+- **Controller** — не содержит бизнес-логики, не знает про SQL/ES
+- **Service** — не знает про HTTP, Request, Response
+- **Model** — Prisma + raw SQL, типы
+
+Правило: зависимости идут только вниз (Router → Controller → Service → Model). Тестирование: сервисы можно тестировать без HTTP.
 
 ## Команды
 
