@@ -4,7 +4,7 @@
 services:
   postgres:
     image: postgis/postgis:16-3.4
-    container_name: newsmap-postgres
+    container_name: postgres
     environment:
       POSTGRES_DB: newsmap
       POSTGRES_USER: newsmap
@@ -17,7 +17,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: newsmap-redis
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
@@ -26,7 +26,7 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
-    container_name: newsmap-elasticsearch
+    container_name: elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

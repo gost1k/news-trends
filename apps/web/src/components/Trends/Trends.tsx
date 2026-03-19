@@ -1,40 +1,26 @@
+import axios from 'axios'
 import Trend from './Trend'
 import styles from './Trends.module.scss'
+import { useEffect, useState } from 'react'
+import type { TrendListItem } from '@newsmap/types'
+
 
 const Trends = () => {
-    const trends = [
-        {
-            id: 1,
-            title: "Тренд 1",
-            description: "Описание тренда 1",
-            image: "https://via.placeholder.com/150",
-            link: "https://www.google.com",
-        },
-        {
-            id: 2,
-            title: "Тренд 2",
-            description: "Описание тренда 2",
-            image: "https://via.placeholder.com/150",
-            link: "https://www.google.com",
-        },
-        {
-            id: 3,
-            title: "Тренд 3",
-            description: "Описание тренда 3",
-            image: "https://via.placeholder.com/150",
-            link: "https://www.google.com",
-        },
-        {
-            id: 4,
-            title: "Тренд 4",
-            description: "Описание тренда 4",
-            image: "https://via.placeholder.com/150",
-            link: "https://www.google.com",
-        },
-    ]
+    const [trends, setTrends] = useState<TrendListItem[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        axios.get('/api/v1/trends')
+            .then((res) => setTrends(res.data))
+            .catch((err) => setError(err))
+            .finally(() => setIsLoading(false))
+    })
+
     return (
         <div className={styles.trends}>
-            {trends.map((trend) => 
+            {isLoading && <div>Загрузка</div>}
+            {!isLoading && trends.map((trend) => 
                 <Trend key={trend.id} trend={trend} />
             )}
         </div>

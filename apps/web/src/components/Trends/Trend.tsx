@@ -1,17 +1,10 @@
-const Trend = (
-    { trend }: 
-    { trend: { 
-        id: number; 
-        title: string; 
-        description: 
-        string; image: string; 
-        link: string 
-    } 
-}) => {
+import type { TrendListItem } from "@newsmap/types";
+
+const Trend = ({ trend }: {trend: TrendListItem}) => {
     return (
         <div>
             <div>{trend.title}</div>
-            <div>{trend.description}</div>
+            <div>{trend.summary}</div>
         </div>
     )
 }

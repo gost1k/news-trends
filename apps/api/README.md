@@ -174,6 +174,34 @@ Request → Router → Controller → Service → Model/Prisma → Response
 
 Правило: зависимости идут только вниз (Router → Controller → Service → Model). Тестирование: сервисы можно тестировать без HTTP.
 
+## Что где хранить: Router, Controller, Service
+
+| Слой | Что хранит | Чего не делает |
+|------|------------|----------------|
+| **Router** | Сопоставление URL → handler. `router.get('/', controller.getList)` | Не парсит body/query, не вызывает сервисы |
+| **Controller** | Парсинг `req.query`, `req.params`, `req.body`. Валидация (zod). Вызов сервиса. `res.json()` / `res.status()`. Обработка ошибок (try/catch или передача в errorHandler) | Не пишет SQL, не знает про Prisma/ES. Не содержит бизнес-правил |
+| **Service** | Бизнес-логика. Вызовы Prisma, Elasticsearch, Ollama, внешних API. Агрегации, фильтры, пагинация. Работа с данными | Не знает про HTTP, Request, Response. Не вызывает `res.json()` |
+
+**Пример потока для GET /api/v1/trends?page=1&pageSize=10:**
+
+- **Router:** `GET /` → `trendsController.getList`
+- **Controller:** парсит `page`, `pageSize` из query, валидирует через zod, вызывает `trendsService.getList({ page, pageSize })`, возвращает `res.json(result)`
+- **Service:** строит Prisma-запрос с `skip`, `take`, `orderBy`, вызывает `prisma.trend.findMany()`, возвращает данные
+
+## Когда логика усложняется — что добавить
+
+| Ситуация | Что добавить | Где |
+|----------|--------------|-----|
+| Сложные Prisma-запросы, raw SQL, PostGIS | **Model/Repository** — слой между Service и Prisma. `articleQueries.ts`, `locationQueries.ts` | `models/` |
+| Валидация повторяется | **Middleware validate** — обёртка над zod, вызывает `next()` или 400 | `middleware/validate.ts` |
+| Общая логика (кеш, логирование) | **Middleware** или обёртка вокруг сервиса | `middleware/` |
+| Много ветвлений в сервисе | Разбить на подфункции или отдельные сервисы | внутри `services/` |
+| Сложная бизнес-логика (несколько источников данных) | **Use case / Application service** — оркестрирует несколько сервисов | `services/` или `useCases/` |
+| Транзакции, несколько операций атомарно | В сервисе: `prisma.$transaction([...])` | `services/` |
+| Фоновые задачи (индексация, агрегация) | **Workers** (BullMQ) — отдельный процесс | `workers/` |
+
+**Правило:** если Controller раздулся — вынести валидацию в middleware. Если Service раздулся — вынести запросы в Model/Repository или разбить на use cases.
+
 ## Команды
 
 ```bash

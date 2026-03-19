@@ -65,7 +65,7 @@ npm run docker:up
 ```bash
 docker ps
 ```
-Должны быть контейнеры `newsmap-postgres`, `newsmap-redis`, `newsmap-elasticsearch` и др. в статусе `Up`.
+Должны быть контейнеры `postgres`, `redis`, `elasticsearch` и др. в статусе `Up`.
 
 **Если порт 5432 занят** — останови свой локальный PostgreSQL или поменяй порт в `docker-compose.dev.yml`.
 
