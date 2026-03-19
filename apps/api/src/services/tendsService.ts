@@ -1,11 +1,12 @@
 import { prisma } from '../lib/prisma.js';
+import type { TrendListItem } from '@newsmap/types'
 
 /**
  * findMany — несколько записей
  * findUnique — одна по уникальному полю (id, unique)
  * findFirst — первая подходящая запись
  */
-export const getList = async () => {
+export const getList = async (): Promise<TrendListItem[]> => {
   return await prisma.trend.findMany({
     // where — фильтрация по полям (id, title, summary, detectedAt, articleCount)
     //   where: { title: { contains: 'поиск' }, articleCount: { gte: 1 } },

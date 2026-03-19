@@ -94,6 +94,12 @@ npm run db:push
 
 **Проверка:** в выводе должно быть что-то вроде "Database is now in sync with the schema". Ошибка подключения — значит Docker не поднят или `DATABASE_URL` неверный.
 
+**Опционально — демо-данные:**
+```bash
+npm run db:seed
+```
+Заполнит БД источниками, статьями, трендами и пользователем `demo@newsmap.local` / `demo123`.
+
 ---
 
 ## Шаг 6. Запустить API
@@ -133,6 +139,7 @@ curl http://localhost:3001/health
 - [ ] `npm run docker:up` (из корня)
 - [ ] `docker ps` — контейнеры запущены
 - [ ] `cd apps/api && npm run db:push`
+- [ ] (опционально) `npm run db:seed` — демо-данные
 - [ ] `npm run dev` (из `apps/api`)
 - [ ] `curl http://localhost:3001/health` — ответ `{"status":"ok",...}`
 
