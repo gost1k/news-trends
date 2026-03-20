@@ -1,7 +1,9 @@
 .trend {
-   .row {
-    display: flex;
-    gap: 20px;
+   border: 1px solid gray;
+   border-radius: 6px;
+   padding: 12px;
+   .count {
+      font-size: 20px;
+      font-color: gray;
    }
-
 }

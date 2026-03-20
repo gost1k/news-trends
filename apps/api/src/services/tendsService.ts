@@ -27,3 +27,12 @@ export const getList = async (): Promise<TrendListItem[]> => {
   });
 };
 
+export const getListByCount = async (limit: number = 5): Promise<TrendListItem[]> => {
+  return await prisma.trend.findMany({
+    orderBy: {
+      articleCount: 'desc'
+    },
+    take: limit
+  })
+}
+

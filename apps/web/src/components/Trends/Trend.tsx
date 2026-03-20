@@ -7,7 +7,9 @@ const Trend = ({ trend }: {trend: TrendListItem}) => {
             <h3>{trend.title}</h3>
             <div className={styles.row}>
                 <div>{trend.summary}</div>
-                <div>{trend.articleCount}</div>
+                <div>
+                    Статей за 24ч: <span className={styles.count}>{trend.articleCount}</span>
+                </div>
             </div>
  
         </div>

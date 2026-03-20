@@ -1,8 +1,8 @@
-import axios from 'axios'
 import Trend from './Trend'
 import styles from './Trends.module.scss'
 import { useEffect, useState } from 'react'
 import type { TrendListItem } from '@newsmap/types'
+import { getTrendsList } from '@/api/trends'
 
 
 const Trends = () => {
@@ -11,11 +11,11 @@ const Trends = () => {
     const [error, setError] = useState(null)
 
     useEffect(() => {
-        axios.get('/api/v1/trends')
+        getTrendsList(10)
             .then((res) => setTrends(res.data))
             .catch((err) => setError(err))
-            .finally(() => setIsLoading(false))
-    })
+            .finally(() => setIsLoading(false)) 
+    }, [])
 
     return (
         <div className={styles.trends}>
