@@ -130,9 +130,11 @@
 
 **Цель:** полноценный UI с картой, трендами и real-time обновлениями.
 
-### Leaflet карта (3-4 дня)
-- [ ] React-Leaflet: MapContainer, TileLayer, Marker, Popup
-- [ ] Кластеризация маркеров (Leaflet.markercluster)
+### Яндекс Карты JS API 3.0 (3-4 дня)
+- [ ] Подключение API через `<script>` + `ymaps3.ready`, reactify-обёртка (`@yandex/ymaps3-reactify`)
+- [ ] Компоненты: YMap, YMapDefaultSchemeLayer, YMapMarker, YMapFeature (полигоны)
+- [ ] Кластеризация маркеров (`@yandex/ymaps3-clusterer`, стратегия `clusterByGrid`)
+- [ ] Многослойность: YMapFeatureDataSource + YMapLayer (страны / города / точки)
 - [ ] Событие: клик → показать детали статьи
 - [ ] Фильтрация по bbox (видимая область карты)
 - **Практика:** `components/Map/`

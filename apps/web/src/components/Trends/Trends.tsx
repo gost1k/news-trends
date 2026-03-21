@@ -11,7 +11,7 @@ const Trends = () => {
     const [error, setError] = useState(null)
 
     useEffect(() => {
-        getTrendsList(10)
+        getTrendsList(5)
             .then((res) => setTrends(res.data))
             .catch((err) => setError(err))
             .finally(() => setIsLoading(false)) 

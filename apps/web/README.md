@@ -19,7 +19,7 @@ npm run dev
 
 | Папка | Назначение |
 |-------|-----------|
-| `components/Map/` | Leaflet-карта с маркерами событий, кластеризация, попапы с деталями |
+| `components/Map/` | Яндекс Карта (JS API 3.0) с маркерами, кластерами, полигонами событий |
 | `components/News/` | Карточки новостей, список, детальный вид статьи |
 | `components/Trends/` | Графики трендов (Recharts): timeline, топ тем, heatmap |
 | `components/Chat/` | Интерфейс AI-чата: поле ввода, история сообщений, streaming ответов |
@@ -47,7 +47,7 @@ npm run dev
 - [Vite Guide](https://vite.dev/guide/)
 - [React Router](https://reactrouter.com/)
 - [Zustand](https://zustand.docs.pmnd.rs/)
-- [React Leaflet](https://react-leaflet.js.org/)
+- [Yandex Maps JS API 3.0](https://yandex.com/maps-api/docs/js-api/)
 - [Recharts](https://recharts.org/)
 
 ## Команды
